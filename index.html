@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOP10 — Discover What's Best Near You</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: rgba(255,255,255,0.07);
+    --accent: #ff3c3c;
+    --accent2: #ff8c42;
+    --gold: #f5c842;
+    --text: #f0f0f5;
+    --text-dim: #7a7a90;
+    --text-muted: #44445a;
+    --green: #2ecc71;
+    --blue: #4a9eff;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans', sans-serif; min-height:100vh; overflow-x:hidden; }
+
+  /* NOISE TEXTURE */
+  body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; opacity:.4; }
+
+  /* HEADER */
+  header { position:sticky; top:0; z-index:100; background:rgba(10,10,15,0.92); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); padding:0 24px; display:flex; align-items:center; gap:16px; height:64px; }
+  .logo { font-family:'Bebas Neue', sans-serif; font-size:2rem; letter-spacing:3px; background:linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; flex-shrink:0; }
+  .tagline { font-size:0.7rem; color:var(--text-dim); letter-spacing:1.5px; text-transform:uppercase; flex-shrink:0; }
+  .header-center { flex:1; display:flex; justify-content:center; }
+  .location-bar { display:flex; align-items:center; gap:10px; background:var(--surface2); border:1px solid var(--border); border-radius:50px; padding:8px 18px; cursor:pointer; transition:border-color .2s; max-width:360px; width:100%; }
+  .location-bar:hover { border-color:var(--accent); }
+  .location-bar svg { color:var(--accent); flex-shrink:0; }
+  .location-bar input { background:none; border:none; color:var(--text); font-family:'DM Sans', sans-serif; font-size:0.9rem; width:100%; outline:none; }
+  .header-actions { display:flex; gap:10px; flex-shrink:0; }
+  .btn-icon { width:40px; height:40px; border-radius:50%; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .2s; color:var(--text-dim); position:relative; }
+  .btn-icon:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-icon .badge { position:absolute; top:-2px; right:-2px; width:16px; height:16px; background:var(--accent); border-radius:50%; font-size:0.65rem; font-weight:600; display:flex; align-items:center; justify-content:center; color:#fff; }
+
+  /* MAIN LAYOUT */
+  main { display:grid; grid-template-columns:260px 1fr; min-height:calc(100vh - 64px); position:relative; z-index:1; }
+
+  /* SIDEBAR */
+  aside { background:var(--surface); border-right:1px solid var(--border); padding:20px 16px; display:flex; flex-direction:column; gap:24px; }
+  .sidebar-section h3 { font-size:0.65rem; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px; font-weight:600; }
+
+  /* CATEGORIES */
+  .cat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .cat-btn { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 8px; cursor:pointer; transition:all .2s; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .cat-btn:hover, .cat-btn.active { border-color:var(--accent); background:rgba(255,60,60,0.1); }
+  .cat-btn.active .cat-emoji { transform:scale(1.2); }
+  .cat-emoji { font-size:1.4rem; transition:transform .2s; }
+  .cat-label { font-size:0.65rem; color:var(--text-dim); font-weight:500; }
+  .cat-btn.active .cat-label { color:var(--accent); }
+
+  /* DISTANCE SLIDER */
+  .slider-wrap { display:flex; flex-direction:column; gap:8px; }
+  .slider-labels { display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-dim); }
+  .slider-val { color:var(--accent); font-weight:600; }
+  input[type=range] { width:100%; accent-color:var(--accent); height:4px; cursor:pointer; }
+
+  /* FILTERS */
+  .filter-group { display:flex; flex-direction:column; gap:8px; }
+  .filter-row { display:flex; align-items:center; justify-content:space-between; }
+  .filter-label { font-size:0.8rem; color:var(--text-dim); }
+  .price-btns { display:flex; gap:4px; }
+  .price-btn { background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:3px 8px; font-size:0.75rem; cursor:pointer; color:var(--text-dim); transition:all .15s; }
+  .price-btn.active { background:rgba(255,60,60,0.15); border-color:var(--accent); color:var(--accent); }
+  .star-filter { display:flex; gap:3px; }
+  .star-btn { font-size:1rem; cursor:pointer; opacity:0.3; transition:opacity .15s; }
+  .star-btn.active { opacity:1; }
+
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; }
+  .toggle { position:relative; width:36px; height:20px; cursor:pointer; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .toggle-slider { position:absolute; inset:0; background:var(--surface2); border-radius:50px; border:1px solid var(--border); transition:.2s; }
+  .toggle-slider:before { content:''; position:absolute; width:14px; height:14px; left:2px; bottom:2px; background:var(--text-muted); border-radius:50%; transition:.2s; }
+  .toggle input:checked + .toggle-slider { background:rgba(255,60,60,0.3); border-color:var(--accent); }
+  .toggle input:checked + .toggle-slider:before { transform:translateX(16px); background:var(--accent); }
+
+  /* MAIN CONTENT */
+  .content { display:flex; flex-direction:column; }
+  .content-header { padding:20px 28px 0; display:flex; align-items:center; justify-content:space-between; }
+  .content-title { font-family:'DM Serif Display', serif; font-size:2rem; }
+  .content-title span { color:var(--accent); font-style:italic; }
+  .view-toggle { display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:4px; }
+  .view-btn { padding:6px 12px; border-radius:5px; border:none; background:none; color:var(--text-dim); cursor:pointer; font-size:0.8rem; transition:all .15s; }
+  .view-btn.active { background:var(--surface); color:var(--text); }
+
+  /* TABS */
+  .tabs { display:flex; gap:0; padding:0 28px; border-bottom:1px solid var(--border); margin-top:16px; }
+  .tab { padding:10px 20px; font-size:0.85rem; color:var(--text-dim); cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+
+  /* TOP 10 LIST */
+  .list-view { padding:20px 28px; display:flex; flex-direction:column; gap:12px; }
+
+  .place-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); display:flex; gap:0; overflow:hidden; transition:all .25s; cursor:pointer; position:relative; }
+  .place-card:hover { border-color:rgba(255,60,60,0.4); transform:translateY(-2px); box-shadow:0 12px 40px rgba(0,0,0,0.4); }
+  .place-card.top3 { border-color:rgba(245,200,66,0.25); }
+
+  .rank-col { width:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--surface2); flex-shrink:0; gap:4px; }
+  .rank-num { font-family:'Bebas Neue', sans-serif; font-size:1.8rem; line-height:1; }
+  .rank-1 .rank-num { color:var(--gold); }
+  .rank-2 .rank-num { color:#c0c0c0; }
+  .rank-3 .rank-num { color:#cd7f32; }
+  .rank-num.other { color:var(--text-muted); font-size:1.3rem; }
+  .rank-medal { font-size:0.9rem; }
+
+  .place-img { width:110px; height:110px; object-fit:cover; flex-shrink:0; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:2.5rem; }
+
+  .place-body { flex:1; padding:14px 16px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .place-name { font-weight:600; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .place-meta { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .rating { display:flex; align-items:center; gap:4px; font-size:0.8rem; }
+  .stars { color:var(--gold); font-size:0.75rem; }
+  .review-count { color:var(--text-dim); font-size:0.75rem; }
+  .price-tag { font-size:0.75rem; color:var(--green); font-weight:600; }
+  .distance-tag { font-size:0.75rem; color:var(--blue); }
+  .place-desc { font-size:0.78rem; color:var(--text-dim); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .place-tags { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { background:var(--surface2); border:1px solid var(--border); border-radius:50px; padding:2px 10px; font-size:0.68rem; color:var(--text-dim); }
+
+  .place-actions { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:14px 16px; flex-shrink:0; }
+  .action-btn { width:36px; height:36px; border-radius:50%; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .2s; font-size:0.9rem; color:var(--text-dim); }
+  .action-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .action-btn.saved { background:rgba(255,60,60,0.1); border-color:var(--accent); color:var(--accent); }
+
+  .score-badge { position:absolute; top:10px; right:58px; background:linear-gradient(135deg, var(--accent), var(--accent2)); border-radius:50px; padding:3px 10px; font-size:0.7rem; font-weight:700; color:#fff; letter-spacing:.5px; }
+
+  /* MAP VIEW */
+  .map-view { display:none; padding:20px 28px; flex:1; }
+  .map-view.active { display:flex; flex-direction:column; gap:16px; }
+  .map-container { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; position:relative; height:380px; }
+  .map-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; background:linear-gradient(135deg, #0d1117 0%, #0a1628 100%); }
+  .map-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(74,158,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(74,158,255,0.05) 1px, transparent 1px); background-size:40px 40px; }
+  .map-pins { position:absolute; inset:0; }
+  .map-pin { position:absolute; cursor:pointer; transition:transform .2s; }
+  .map-pin:hover { transform:scale(1.2); z-index:10; }
+  .pin-dot { width:32px; height:32px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.5); }
+  .pin-dot span { transform:rotate(45deg); font-size:0.7rem; font-weight:700; }
+  .pin-top { background:linear-gradient(135deg, var(--gold), #e5a010); }
+  .pin-other { background:linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .map-legend { display:flex; gap:16px; align-items:center; }
+  .legend-item { display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--text-dim); }
+  .legend-dot { width:10px; height:10px; border-radius:50%; }
+  .map-list { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:10px; }
+  .map-list-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; cursor:pointer; transition:all .2s; }
+  .map-list-card:hover { border-color:var(--accent); }
+  .mlc-rank { font-family:'Bebas Neue', sans-serif; font-size:1rem; color:var(--text-muted); }
+  .mlc-name { font-size:0.85rem; font-weight:600; margin-top:2px; }
+  .mlc-rating { font-size:0.75rem; color:var(--gold); margin-top:4px; }
+
+  /* FAVORITES VIEW */
+  .favorites-view { display:none; padding:20px 28px; }
+  .favorites-view.active { display:block; }
+  .fav-lists { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; margin-bottom:24px; }
+  .fav-list-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; cursor:pointer; transition:all .2s; }
+  .fav-list-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .flc-icon { font-size:2rem; margin-bottom:8px; }
+  .flc-name { font-weight:600; font-size:0.95rem; }
+  .flc-count { font-size:0.75rem; color:var(--text-dim); margin-top:4px; }
+  .add-list-btn { border:2px dashed var(--border); background:none; border-radius:var(--radius); padding:16px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--text-muted); transition:all .2s; min-height:100px; width:100%; }
+  .add-list-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .saved-places-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; }
+  .saved-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; display:flex; gap:12px; align-items:center; }
+  .saved-emoji { font-size:2rem; width:50px; height:50px; background:var(--surface2); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .saved-info { flex:1; min-width:0; }
+  .saved-name { font-size:0.9rem; font-weight:600; }
+  .saved-cat { font-size:0.72rem; color:var(--text-dim); margin-top:2px; }
+  .saved-list-tag { font-size:0.68rem; background:rgba(255,60,60,0.1); border:1px solid rgba(255,60,60,0.3); border-radius:50px; padding:2px 8px; color:var(--accent); display:inline-block; margin-top:4px; }
+
+  /* FEEDBACK */
+  .feedback-view { display:none; padding:20px 28px; }
+  .feedback-view.active { display:block; }
+  .feedback-wrap { max-width:560px; margin:0 auto; }
+  .feedback-hero { text-align:center; padding:32px 0 24px; }
+  .feedback-hero h2 { font-family:'DM Serif Display', serif; font-size:2rem; margin-bottom:8px; }
+  .feedback-hero p { color:var(--text-dim); font-size:0.9rem; }
+  .app-rating { display:flex; justify-content:center; gap:12px; margin:24px 0; }
+  .app-star { font-size:2.5rem; cursor:pointer; opacity:0.3; transition:all .2s; }
+  .app-star.lit { opacity:1; transform:scale(1.1); }
+  .fb-form { display:flex; flex-direction:column; gap:16px; }
+  .fb-field { display:flex; flex-direction:column; gap:6px; }
+  .fb-label { font-size:0.8rem; color:var(--text-dim); font-weight:500; }
+  .fb-input, .fb-textarea, .fb-select { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; color:var(--text); font-family:'DM Sans', sans-serif; font-size:0.9rem; outline:none; transition:border-color .2s; width:100%; }
+  .fb-input:focus, .fb-textarea:focus, .fb-select:focus { border-color:var(--accent); }
+  .fb-textarea { resize:vertical; min-height:100px; }
+  .fb-select option { background:var(--surface2); }
+  .chip-group { display:flex; gap:8px; flex-wrap:wrap; }
+  .chip { background:var(--surface2); border:1px solid var(--border); border-radius:50px; padding:5px 14px; font-size:0.78rem; cursor:pointer; transition:all .15s; color:var(--text-dim); }
+  .chip.active { background:rgba(255,60,60,0.15); border-color:var(--accent); color:var(--accent); }
+  .submit-btn { background:linear-gradient(135deg, var(--accent), var(--accent2)); border:none; border-radius:var(--radius-sm); padding:12px 28px; color:#fff; font-family:'DM Sans', sans-serif; font-size:0.95rem; font-weight:600; cursor:pointer; transition:opacity .2s; width:100%; }
+  .submit-btn:hover { opacity:0.85; }
+  .fb-success { text-align:center; padding:40px 20px; display:none; }
+  .fb-success.show { display:block; }
+  .fb-success .checkmark { font-size:3rem; margin-bottom:12px; }
+  .fb-success h3 { font-family:'DM Serif Display', serif; font-size:1.5rem; margin-bottom:8px; }
+  .fb-success p { color:var(--text-dim); font-size:0.85rem; }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:200; display:none; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); width:90%; max-width:480px; padding:28px; }
+  .modal h3 { font-family:'DM Serif Display', serif; font-size:1.5rem; margin-bottom:16px; }
+  .modal-lists { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .modal-list-opt { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 16px; cursor:pointer; display:flex; align-items:center; gap:12px; transition:all .15s; }
+  .modal-list-opt:hover { border-color:var(--accent); }
+  .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+  .btn-cancel { background:none; border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 20px; color:var(--text-dim); cursor:pointer; font-family:'DM Sans', sans-serif; }
+  .btn-primary { background:var(--accent); border:none; border-radius:var(--radius-sm); padding:8px 20px; color:#fff; cursor:pointer; font-family:'DM Sans', sans-serif; font-weight:600; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface); border:1px solid var(--border); border-radius:50px; padding:10px 24px; font-size:0.85rem; z-index:300; transition:transform .3s; box-shadow:0 8px 32px rgba(0,0,0,0.5); white-space:nowrap; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--surface2); border-radius:3px; }
+
+  /* SCORE RING */
+  .score-ring { width:44px; height:44px; flex-shrink:0; }
+  .score-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .score-ring text { font-family:'Bebas Neue', sans-serif; font-size:11px; fill:var(--text); transform:rotate(90deg); transform-origin:50% 50%; }
+
+  .trend { font-size:0.7rem; display:flex; align-items:center; gap:2px; }
+  .trend.up { color:var(--green); }
+  .trend.down { color:var(--accent); }
+  .trend.flat { color:var(--text-muted); }
+
+  /* EMPTY STATE */
+  .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
+  .empty-state .es-icon { font-size:3rem; margin-bottom:12px; }
+  .empty-state p { font-size:0.9rem; }
+
+  @keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .place-card { animation:fadeInUp .3s ease both; }
+  .place-card:nth-child(1) { animation-delay:.03s; }
+  .place-card:nth-child(2) { animation-delay:.06s; }
+  .place-card:nth-child(3) { animation-delay:.09s; }
+  .place-card:nth-child(4) { animation-delay:.12s; }
+  .place-card:nth-child(5) { animation-delay:.15s; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">TOP10</div>
+  <div class="tagline">Near You</div>
+  <div class="header-center">
+    <div class="location-bar" onclick="document.getElementById('locInput').focus()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      <input id="locInput" value="Round Rock, TX" placeholder="Enter location..." oninput="onLocationInput(this.value)" />
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--text-muted)"><path d="M19 9l-7 7-7-7"/></svg>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="btn-icon" title="Favorites" onclick="switchTab('favorites')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      <span class="badge" id="favBadge">0</span>
+    </div>
+    <div class="btn-icon" title="App Feedback" onclick="switchTab('feedback')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sidebar-section">
+      <h3>Category</h3>
+      <div class="cat-grid" id="catGrid"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Coverage Distance</h3>
+      <div class="slider-wrap">
+        <div class="slider-labels">
+          <span>0.5 mi</span>
+          <span class="slider-val" id="distVal">5 mi</span>
+          <span>25 mi</span>
+        </div>
+        <input type="range" id="distSlider" min="0.5" max="25" step="0.5" value="5" oninput="onDistChange(this.value)">
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Price Range</h3>
+      <div class="price-btns" id="priceBtns">
+        <button class="price-btn active" data-p="1" onclick="togglePrice(this)">$</button>
+        <button class="price-btn active" data-p="2" onclick="togglePrice(this)">$$</button>
+        <button class="price-btn active" data-p="3" onclick="togglePrice(this)">$$$</button>
+        <button class="price-btn active" data-p="4" onclick="togglePrice(this)">$$$$</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Min Rating</h3>
+      <div class="star-filter" id="starFilter">
+        <span class="star-btn active" data-r="1" onclick="setMinRating(1)">★</span>
+        <span class="star-btn active" data-r="2" onclick="setMinRating(2)">★</span>
+        <span class="star-btn active" data-r="3" onclick="setMinRating(3)">★</span>
+        <span class="star-btn active" data-r="4" onclick="setMinRating(4)">★</span>
+        <span class="star-btn active" data-r="5" onclick="setMinRating(5)">★</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Amenities</h3>
+      <div class="filter-group">
+        <div class="toggle-row">
+          <span class="filter-label">Open Now</span>
+          <label class="toggle"><input type="checkbox" id="openNow" onchange="applyFilters()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="filter-label">Free Parking</span>
+          <label class="toggle"><input type="checkbox" id="parking" onchange="applyFilters()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="filter-label">Outdoor Seating</span>
+          <label class="toggle"><input type="checkbox" id="outdoor" onchange="applyFilters()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="filter-label">Pet Friendly</span>
+          <label class="toggle"><input type="checkbox" id="pets" onchange="applyFilters()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="margin-top:auto;">
+      <div style="font-size:0.68rem;color:var(--text-muted);line-height:1.6;">
+        <div style="margin-bottom:4px;">Data sources</div>
+        <div>🔴 Google Reviews &nbsp; 🟡 Yelp &nbsp; 🔵 Foursquare</div>
+        <div style="margin-top:6px;opacity:.6;">Rankings combine rating, review volume, recency, distance & trending signals.</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENT AREA -->
+  <div class="content" id="mainContent">
+
+    <!-- TOP TABS -->
+    <div class="content-header" id="contentHeader">
+      <div>
+        <div class="content-title">Top <span id="catNameTitle">Restaurants</span></div>
+        <div style="font-size:0.78rem;color:var(--text-dim);margin-top:4px;" id="resultsMeta">Showing 10 results · within <span id="distDisplay">5</span> mi of <span id="locDisplay">Round Rock, TX</span></div>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" onclick="setView('list',this)">☰ List</button>
+        <button class="view-btn" onclick="setView('map',this)">🗺 Map</button>
+      </div>
+    </div>
+
+    <div class="tabs" id="mainTabs">
+      <div class="tab active" onclick="switchTab('discover')">🔍 Discover</div>
+      <div class="tab" onclick="switchTab('favorites')">❤️ Favorites</div>
+      <div class="tab" onclick="switchTab('feedback')">💬 Feedback</div>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div class="list-view" id="listView">
+      <!-- populated by JS -->
+    </div>
+
+    <!-- MAP VIEW -->
+    <div class="map-view" id="mapView">
+      <div class="map-container">
+        <div class="map-grid"></div>
+        <div class="map-pins" id="mapPins"></div>
+        <div style="position:absolute;bottom:12px;left:12px;font-size:0.72rem;color:var(--text-dim);background:rgba(10,10,15,0.8);padding:6px 12px;border-radius:6px;">
+          📍 Pins represent ranked places · Click for details
+        </div>
+      </div>
+      <div class="map-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>#1 Top Pick</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Top 10</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Saved</div>
+      </div>
+      <div class="map-list" id="mapList"></div>
+    </div>
+
+    <!-- FAVORITES VIEW -->
+    <div class="favorites-view" id="favoritesView">
+      <div style="margin-bottom:20px;">
+        <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;">Your Lists</div>
+        <div style="font-size:0.8rem;color:var(--text-dim);margin-top:4px;">Organize saved places into custom collections</div>
+      </div>
+      <div class="fav-lists" id="favListsGrid"></div>
+      <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;margin:24px 0 12px;">All Saved Places</div>
+      <div class="saved-places-grid" id="savedPlacesGrid"></div>
+    </div>
+
+    <!-- FEEDBACK VIEW -->
+    <div class="feedback-view" id="feedbackView">
+      <div class="feedback-wrap">
+        <div class="feedback-hero">
+          <h2>How are we doing?</h2>
+          <p>Your feedback helps us improve TOP10 for everyone</p>
+        </div>
+        <div id="fbForm">
+          <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:10px;">Overall Experience</div>
+            <div class="app-rating" id="appRating">
+              <span class="app-star" onclick="setAppRating(1)">⭐</span>
+              <span class="app-star" onclick="setAppRating(2)">⭐</span>
+              <span class="app-star" onclick="setAppRating(3)">⭐</span>
+              <span class="app-star" onclick="setAppRating(4)">⭐</span>
+              <span class="app-star" onclick="setAppRating(5)">⭐</span>
+            </div>
+          </div>
+          <div class="fb-form">
+            <div class="fb-field">
+              <label class="fb-label">What brought you to TOP10?</label>
+              <div class="chip-group">
+                <div class="chip" onclick="this.classList.toggle('active')">Finding restaurants</div>
+                <div class="chip" onclick="this.classList.toggle('active')">Travel planning</div>
+                <div class="chip" onclick="this.classList.toggle('active')">Weekend ideas</div>
+                <div class="chip" onclick="this.classList.toggle('active')">Local discovery</div>
+                <div class="chip" onclick="this.classList.toggle('active')">Other</div>
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-label">What do you love most?</label>
+              <div class="chip-group">
+                <div class="chip" onclick="this.classList.toggle('active')">Top 10 ranking</div>
+                <div class="chip" onclick="this.classList.toggle('active')">Filters</div>
+                <div class="chip" onclick="this.classList.toggle('active')">Custom lists</div>
+                <div class="chip" onclick="this.classList.toggle('active')">Map view</div>
+                <div class="chip" onclick="this.classList.toggle('active')">Distance slider</div>
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-label">What could be better?</label>
+              <select class="fb-select">
+                <option value="">Select a category...</option>
+                <option>More categories</option>
+                <option>Better ranking accuracy</option>
+                <option>Faster loading</option>
+                <option>More filter options</option>
+                <option>UI / Design</option>
+                <option>Map features</option>
+                <option>Something else</option>
+              </select>
+            </div>
+            <div class="fb-field">
+              <label class="fb-label">Tell us more (optional)</label>
+              <textarea class="fb-textarea" placeholder="Any thoughts, bugs, or feature requests..."></textarea>
+            </div>
+            <div class="fb-field">
+              <label class="fb-label">Email (optional, for follow-up)</label>
+              <input class="fb-input" type="email" placeholder="you@example.com">
+            </div>
+            <button class="submit-btn" onclick="submitFeedback()">Send Feedback →</button>
+          </div>
+        </div>
+        <div class="fb-success" id="fbSuccess">
+          <div class="checkmark">🎉</div>
+          <h3>Thanks for the feedback!</h3>
+          <p>We read every submission and use it to make TOP10 better. You rock.</p>
+          <button class="submit-btn" style="margin-top:20px;max-width:200px;" onclick="switchTab('discover')">Back to Discover</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ADD TO LIST MODAL -->
+<div class="modal-overlay" id="listModal">
+  <div class="modal">
+    <h3>Save to List</h3>
+    <div class="modal-lists" id="modalListOpts"></div>
+    <button class="add-list-btn" style="border-style:dashed;width:100%;flex-direction:row;gap:8px;font-size:0.85rem;" onclick="addNewList()">+ Create new list</button>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const CATEGORIES = [
+  {id:'restaurant',label:'Restaurants',emoji:'🍽️'},
+  {id:'hotel',label:'Hotels',emoji:'🏨'},
+  {id:'coffee',label:'Coffee',emoji:'☕'},
+  {id:'bar',label:'Bars',emoji:'🍺'},
+  {id:'spa',label:'Spas',emoji:'💆'},
+  {id:'gym',label:'Gyms',emoji:'🏋️'},
+  {id:'park',label:'Parks',emoji:'🌳'},
+  {id:'shopping',label:'Shopping',emoji:'🛍️'},
+  {id:'museum',label:'Museums',emoji:'🏛️'},
+  {id:'entertainment',label:'Fun',emoji:'🎉'},
+];
+
+const PLACE_DATA = {
+  restaurant: [
+    {name:'Trattoria Bella Vita',emoji:'🍝',rating:4.9,reviews:2840,price:3,dist:0.8,tags:['Italian','Pasta','Wine'],desc:'Hand-rolled pasta and wood-fired dishes in an intimate setting. Consistently rated Austin\'s finest Italian.',amenities:['outdoor','parking'],open:true,trend:'up',score:98},
+    {name:'Sushi Tora',emoji:'🍣',rating:4.8,reviews:1920,price:4,dist:1.2,tags:['Japanese','Sushi','Omakase'],desc:'Chef-driven omakase experience with the freshest fish flown in daily. Book weeks in advance.',amenities:['pets'],open:true,trend:'up',score:95},
+    {name:'The Smoke Yard',emoji:'🥩',rating:4.8,reviews:3200,price:2,dist:2.1,tags:['BBQ','Texas','Brisket'],desc:'Central Texas-style BBQ with 18-hour smoked brisket. The line is worth every minute.',amenities:['outdoor','parking','pets'],open:true,trend:'flat',score:93},
+    {name:'Marigold Garden',emoji:'🌼',rating:4.7,reviews:890,price:3,dist:0.5,tags:['Brunch','Farm-to-Table'],desc:'Seasonal menu sourced from local farms. Their weekend brunch is an institution.',amenities:['outdoor'],open:false,trend:'up',score:90},
+    {name:'Ramen Kumo',emoji:'🍜',rating:4.7,reviews:1450,price:2,dist:3.2,tags:['Ramen','Japanese','Noodles'],desc:'Rich tonkotsu and miso broths simmered for 24 hours. Tokyo vibes in the Texas hill.',amenities:['parking'],open:true,trend:'up',score:88},
+    {name:'La Cantina',emoji:'🌮',rating:4.6,reviews:2100,price:2,dist:1.8,tags:['Mexican','Tacos','Margaritas'],desc:'Authentic Oaxacan cuisine with house-made tortillas and the best mole in town.',amenities:['outdoor','pets','parking'],open:true,trend:'flat',score:85},
+    {name:'The Vine',emoji:'🍷',rating:4.6,reviews:670,price:4,dist:4.1,tags:['Wine Bar','Small Plates'],desc:'Curated wine selection with rotating small plates. Perfect for a romantic evening.',amenities:['outdoor'],open:true,trend:'up',score:83},
+    {name:'Blue Agave',emoji:'🥑',rating:4.5,reviews:1800,price:2,dist:2.7,tags:['Tex-Mex','Casual','Family'],desc:'Family-friendly Tex-Mex staple with massive portions and legendary queso.',amenities:['parking','outdoor'],open:true,trend:'down',score:80},
+    {name:'Harvest Table',emoji:'🥗',rating:4.5,reviews:540,price:3,dist:3.9,tags:['Vegetarian','Vegan','Healthy'],desc:'Plant-forward menu that converts even the most devoted carnivores.',amenities:['outdoor'],open:false,trend:'up',score:77},
+    {name:'Stack House',emoji:'🍔',rating:4.4,reviews:3500,price:1,dist:1.1,tags:['Burgers','Casual','Late Night'],desc:'Smash burgers with creative toppings. Open until 2am on weekends — legend status.',amenities:['parking','pets'],open:true,trend:'flat',score:75},
+  ],
+  hotel: [
+    {name:'The Grand Balcony',emoji:'🏩',rating:4.9,reviews:890,price:4,dist:2.0,tags:['Luxury','Spa','Rooftop'],desc:'Forbes five-star property with panoramic views, a world-class spa and Michelin-starred dining.',amenities:['parking','outdoor'],open:true,trend:'up',score:98},
+    {name:'Canopy by Hilton',emoji:'🏨',rating:4.7,reviews:1200,price:3,dist:1.5,tags:['Boutique','Modern'],desc:'Locally-inspired boutique hotel with neighborhood walking maps and a buzzy bar.',amenities:['parking'],open:true,trend:'up',score:93},
+    {name:'The Rustic Inn',emoji:'🏡',rating:4.7,reviews:540,price:2,dist:4.5,tags:['Cozy','B&B','Pet Friendly'],desc:'Charming bed & breakfast with made-to-order breakfasts and a wraparound porch.',amenities:['pets','outdoor','parking'],open:true,trend:'flat',score:90},
+    {name:'Skyline Suites',emoji:'🌆',rating:4.6,reviews:780,price:3,dist:3.2,tags:['Suites','Business','Pool'],desc:'Spacious suites with full kitchens and pool. Ideal for extended stays.',amenities:['parking'],open:true,trend:'up',score:86},
+    {name:'Casa Verde',emoji:'🌿',rating:4.5,reviews:320,price:3,dist:2.8,tags:['Eco','Sustainable'],desc:'Award-winning sustainable hotel powered by solar. A green stay without compromising luxury.',amenities:['outdoor','pets'],open:true,trend:'up',score:82},
+    {name:'Dripping Rock Resort',emoji:'⛰️',rating:4.5,reviews:960,price:4,dist:8.1,tags:['Resort','Pool','Nature'],desc:'Hill country retreat with hiking trails, spring-fed pool and spa treatments.',amenities:['outdoor','parking','pets'],open:true,trend:'flat',score:79},
+    {name:'Metro Lofts',emoji:'🏢',rating:4.4,reviews:430,price:2,dist:0.9,tags:['Affordable','Central'],desc:'Design-forward affordable option in a prime downtown location.',amenities:['parking'],open:true,trend:'up',score:76},
+    {name:'The Palms',emoji:'🌴',rating:4.4,reviews:650,price:3,dist:5.0,tags:['Pool','Family'],desc:'Family resort with kids\' activities, multiple pools and a lazy river.',amenities:['outdoor','parking'],open:true,trend:'flat',score:73},
+    {name:'Harbor View Inn',emoji:'⚓',rating:4.3,reviews:290,price:2,dist:6.2,tags:['Waterfront','Quiet'],desc:'Peaceful waterfront inn with kayaks included for guests.',amenities:['outdoor','pets'],open:true,trend:'down',score:70},
+    {name:'Budget Stay Plus',emoji:'💤',rating:4.1,reviews:1800,price:1,dist:1.3,tags:['Budget','Reliable'],desc:'Consistently clean and reliable. The best value option in the area by a wide margin.',amenities:['parking'],open:true,trend:'flat',score:66},
+  ],
+  coffee: [
+    {name:'Ceremony Roasters',emoji:'☕',rating:4.9,reviews:1100,price:2,dist:0.4,tags:['Specialty','Pour-Over'],desc:'Single-origin beans, precise pour-overs. The gold standard for coffee in the region.',amenities:['outdoor','pets'],open:true,trend:'up',score:98},
+    {name:'The Black Cup',emoji:'🖤',rating:4.8,reviews:760,price:2,dist:1.0,tags:['Espresso','Cozy'],desc:'Minimalist black-on-black aesthetic with flawless espresso technique.',amenities:[],open:true,trend:'flat',score:94},
+    {name:'Wildflower Café',emoji:'🌸',rating:4.7,reviews:890,price:1,dist:0.6,tags:['Pastries','Cozy'],desc:'Packed with morning regulars for good reason. Flaky croissants and silky flat whites.',amenities:['outdoor','pets'],open:true,trend:'up',score:90},
+    {name:'High Altitude',emoji:'⛰️',rating:4.6,reviews:430,price:3,dist:2.1,tags:['Specialty','Laptop-Friendly'],desc:'Third-wave roastery with great WiFi and private pods for remote workers.',amenities:['parking'],open:true,trend:'up',score:86},
+    {name:'Beanfield Social',emoji:'🫘',rating:4.5,reviews:620,price:2,dist:1.4,tags:['Community','Events'],desc:'Coffee shop by day, community hub by evening. Regular live music and cupping events.',amenities:['outdoor'],open:true,trend:'up',score:82},
+    {name:'Copper Kettle',emoji:'🫖',rating:4.5,reviews:340,price:2,dist:3.0,tags:['Tea','Coffee','Quiet'],desc:'Rare spot that does both coffee and tea justice. Perfect for a slow morning.',amenities:['outdoor'],open:false,trend:'flat',score:79},
+    {name:'Sunrise Drive-Thru',emoji:'🌅',rating:4.4,reviews:2100,price:1,dist:0.8,tags:['Fast','Drive-Thru'],desc:'Insanely efficient drive-thru with a consistent product and friendly team.',amenities:['parking'],open:true,trend:'flat',score:75},
+    {name:'Foxglen Coffee',emoji:'🦊',rating:4.4,reviews:280,price:3,dist:4.2,tags:['Hipster','Natural Light'],desc:'Stunning converted barn with floor-to-ceiling windows and excellent single-origins.',amenities:['outdoor','pets','parking'],open:true,trend:'up',score:72},
+    {name:'Morning Bell',emoji:'🔔',rating:4.3,reviews:510,price:1,dist:1.7,tags:['Budget','Reliable'],desc:'No frills, great coffee, honest prices. Exactly what a neighborhood café should be.',amenities:[],open:true,trend:'flat',score:68},
+    {name:'The Perch',emoji:'🐦',rating:4.2,reviews:190,price:2,dist:5.1,tags:['Rooftop','Views'],desc:'Rooftop coffee bar with sweeping views. Come for the sunrise, stay for the cortado.',amenities:['outdoor'],open:true,trend:'up',score:64},
+  ],
+  bar: [
+    {name:'Neon & Rye',emoji:'🥃',rating:4.8,reviews:1400,price:3,dist:1.1,tags:['Cocktails','Speakeasy'],desc:'Inventive cocktails in a stunning speakeasy setting. Reservations essential.',amenities:[],open:true,trend:'up',score:97},
+    {name:'The Tap Room',emoji:'🍺',rating:4.7,reviews:2200,price:2,dist:0.7,tags:['Craft Beer','Patio'],desc:'40 rotating craft taps, knowledgeable bartenders, legendary patio vibes.',amenities:['outdoor','pets'],open:true,trend:'flat',score:93},
+    {name:'Roof Garden Bar',emoji:'🌙',rating:4.7,reviews:980,price:3,dist:2.4,tags:['Rooftop','Views','Cocktails'],desc:'City views meet creative cocktails. The place to be when the sun goes down.',amenities:['outdoor'],open:true,trend:'up',score:90},
+    {name:'Honky Tonk Palace',emoji:'🤠',rating:4.6,reviews:3100,price:2,dist:1.9,tags:['Live Music','Country','Dancing'],desc:'Live music every night, dance floor packed by 9pm. The heart of Austin culture.',amenities:['outdoor','parking'],open:true,trend:'flat',score:86},
+    {name:'The Salty Rim',emoji:'🍹',rating:4.6,reviews:750,price:2,dist:0.4,tags:['Margaritas','Casual'],desc:'Best frozen margaritas in a 10-mile radius. Cash only and worth every problem.',amenities:['outdoor'],open:true,trend:'up',score:83},
+    {name:'Wine+',emoji:'🍷',rating:4.5,reviews:480,price:4,dist:3.2,tags:['Wine','Quiet','Upscale'],desc:'Natural wine bar with a rotating selection of 200+ bottles and knowledgeable staff.',amenities:[],open:true,trend:'up',score:79},
+    {name:'Pinball Wizard',emoji:'🕹️',rating:4.5,reviews:890,price:1,dist:1.5,tags:['Arcade','Beer','Fun'],desc:'100+ arcade games, cheap beer and a genuinely great time. A neighborhood treasure.',amenities:['parking'],open:true,trend:'up',score:76},
+    {name:'The Library',emoji:'📚',rating:4.4,reviews:310,price:3,dist:4.0,tags:['Quiet','Cocktails'],desc:'Hushed reading-room ambiance, exceptional cocktails. Perfect for serious conversation.',amenities:[],open:false,trend:'flat',score:72},
+    {name:'Sports Central',emoji:'🏈',rating:4.3,reviews:1700,price:2,dist:2.0,tags:['Sports','Pub'],desc:'Every game, every screen, great wings. The area\'s go-to spot for game nights.',amenities:['parking'],open:true,trend:'flat',score:68},
+    {name:'Drift Bar',emoji:'🌊',rating:4.2,reviews:240,price:2,dist:5.8,tags:['Chill','Live Music'],desc:'Laid-back neighborhood bar with acoustic sets Wednesday through Sunday.',amenities:['outdoor','pets'],open:true,trend:'up',score:64},
+  ],
+  spa: generateCategory('spa','💆',['Massages','Facials','Relaxation','Hot Tub','Sauna','Steam Room','Couples']),
+  gym: generateCategory('gym','🏋️',['CrossFit','HIIT','Yoga','Classes','Pool','Sauna','24hr Access']),
+  park: generateCategory('park','🌳',['Trails','Dog Park','Playground','Picnic','Lake','BBQ','Sports']),
+  shopping: generateCategory('shopping','🛍️',['Boutique','Local','Artisan','Vintage','Outlet','Mall','Farmers Market']),
+  museum: generateCategory('museum','🏛️',['History','Science','Art','Interactive','Kids Friendly','Photography','Free Entry']),
+  entertainment: generateCategory('entertainment','🎉',['Live Music','Comedy','Bowling','Mini Golf','Escape Room','Cinema','Events']),
+};
+
+function generateCategory(id, em, tagPool) {
+  const names = ['The Golden',`Star ${id.charAt(0).toUpperCase()+id.slice(1)}`,`Premier`,`Elite`,`Downtown`,`Riverside`,`Uptown`,`Classic`,`Modern`,`The Local`];
+  return names.map((n,i) => ({
+    name:`${n} ${id.charAt(0).toUpperCase()+id.slice(1)}${i===0?'':' '+['','Collective','House','Studio','Corner','Social','Co.','Place','Hub','Spot'][i]}`,
+    emoji:em, rating:+(4.9-i*.07).toFixed(1), reviews:Math.floor(2000-i*150+Math.random()*200),
+    price:((i%4)+1), dist:+(0.5+i*0.8+Math.random()).toFixed(1),
+    tags:[tagPool[i%tagPool.length],tagPool[(i+2)%tagPool.length]],
+    desc:`Top-rated ${id} destination consistently praised by locals and visitors alike. A must-visit in the area.`,
+    amenities:['outdoor','parking','pets'].filter((_,j)=>j<=i%3), open:i%3!==0, trend:['up','flat','down'][i%3], score:Math.floor(98-i*3.5)
+  }));
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────
+let state = {
+  category: 'restaurant',
+  distance: 5,
+  minRating: 1,
+  prices: [1,2,3,4],
+  openNow: false,
+  parking: false,
+  outdoor: false,
+  pets: false,
+  view: 'list',
+  tab: 'discover',
+  favorites: JSON.parse(localStorage.getItem('top10_favs')||'[]'),
+  lists: JSON.parse(localStorage.getItem('top10_lists')||'[{"name":"Date Night","emoji":"💕","places":[]},{"name":"Family Outings","emoji":"👨‍👩‍👧","places":[]},{"name":"Business Meetings","emoji":"💼","places":[]}]'),
+  appRating: 0,
+  pendingSavePlace: null,
+};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+function init() {
+  renderCategories();
+  applyFilters();
+  updateFavBadge();
+}
+
+function renderCategories() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = CATEGORIES.map(c => `
+    <div class="cat-btn${c.id===state.category?' active':''}" onclick="selectCategory('${c.id}','${c.label}')">
+      <div class="cat-emoji">${c.emoji}</div>
+      <div class="cat-label">${c.label}</div>
+    </div>`).join('');
+}
+
+function selectCategory(id, label) {
+  state.category = id;
+  document.getElementById('catNameTitle').textContent = label;
+  renderCategories();
+  applyFilters();
+  if(state.tab==='discover') switchTab('discover');
+}
+
+function onDistChange(v) {
+  state.distance = +v;
+  document.getElementById('distVal').textContent = v+' mi';
+  document.getElementById('distDisplay').textContent = v;
+  applyFilters();
+}
+
+function togglePrice(btn) {
+  const p = +btn.dataset.p;
+  btn.classList.toggle('active');
+  if(state.prices.includes(p)) state.prices = state.prices.filter(x=>x!==p);
+  else state.prices.push(p);
+  applyFilters();
+}
+
+let minRating = 1;
+function setMinRating(r) {
+  minRating = r;
+  document.querySelectorAll('.star-btn').forEach((s,i)=>s.classList.toggle('active',i<r));
+  applyFilters();
+}
+
+function onLocationInput(v) {
+  document.getElementById('locDisplay').textContent = v || '—';
+  applyFilters();
+}
+
+function applyFilters() {
+  state.openNow = document.getElementById('openNow').checked;
+  state.parking = document.getElementById('parking').checked;
+  state.outdoor = document.getElementById('outdoor').checked;
+  state.pets = document.getElementById('pets').checked;
+
+  let data = PLACE_DATA[state.category] || [];
+  data = data.filter(p => {
+    if(p.dist > state.distance) return false;
+    if(!state.prices.includes(p.price)) return false;
+    if(p.rating < minRating) return false;
+    if(state.openNow && !p.open) return false;
+    if(state.parking && !p.amenities.includes('parking')) return false;
+    if(state.outdoor && !p.amenities.includes('outdoor')) return false;
+    if(state.pets && !p.amenities.includes('pets')) return false;
+    return true;
+  }).slice(0,10);
+
+  renderList(data);
+  renderMap(data);
+}
+
+// ─── RENDER LIST ──────────────────────────────────────────────────────────
+function renderList(data) {
+  const el = document.getElementById('listView');
+  if(!data.length) { el.innerHTML='<div class="empty-state"><div class="es-icon">🔍</div><p>No results match your current filters.<br>Try widening your distance or adjusting filters.</p></div>'; return; }
+  el.innerHTML = data.map((p,i) => {
+    const rank = i+1;
+    const isSaved = state.favorites.includes(p.name);
+    const priceStr = '$'.repeat(p.price);
+    const starsStr = '★'.repeat(Math.round(p.rating))+'☆'.repeat(5-Math.round(p.rating));
+    const trendIcon = p.trend==='up'?'↑ Trending':p.trend==='down'?'↓ Falling':'→ Stable';
+    const trendClass = p.trend;
+    return `
+    <div class="place-card rank-${rank<=3?rank:'other'}" onclick="onCardClick('${escStr(p.name)}')">
+      <div class="rank-col">
+        <div class="rank-num${rank>3?' other':''}">${rank}</div>
+        ${rank===1?'<div class="rank-medal">🥇</div>':rank===2?'<div class="rank-medal">🥈</div>':rank===3?'<div class="rank-medal">🥉</div>':''}
+      </div>
+      <div class="place-img">${p.emoji}</div>
+      <div class="place-body">
+        <div class="place-name">${p.name}</div>
+        <div class="place-meta">
+          <span class="rating"><span class="stars">${starsStr}</span> ${p.rating}</span>
+          <span class="review-count">(${p.reviews.toLocaleString()})</span>
+          <span class="price-tag">${priceStr}</span>
+          <span class="distance-tag">📍 ${p.dist} mi</span>
+          <span class="trend ${trendClass}">${trendIcon}</span>
+          ${p.open?'<span style="color:var(--green);font-size:.7rem;font-weight:600;">● OPEN</span>':'<span style="color:var(--text-muted);font-size:.7rem;">● CLOSED</span>'}
+        </div>
+        <div class="place-desc">${p.desc}</div>
+        <div class="place-tags">${p.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      </div>
+      <div class="place-actions">
+        <div class="action-btn${isSaved?' saved':''}" onclick="event.stopPropagation();toggleFav('${escStr(p.name)}')" title="${isSaved?'Remove from favorites':'Save'}">
+          ${isSaved?'❤️':'🤍'}
+        </div>
+        <div class="action-btn" onclick="event.stopPropagation();openSaveToList('${escStr(p.name)}')" title="Add to list">➕</div>
+        <div class="action-btn" onclick="event.stopPropagation();sharePlace('${escStr(p.name)}')" title="Share">↗️</div>
+      </div>
+      <div class="score-badge">Score ${p.score}</div>
+    </div>`;
+  }).join('');
+}
+
+function escStr(s){ return s.replace(/'/g,"\\'"); }
+
+// ─── MAP ───────────────────────────────────────────────────────────────────
+function renderMap(data) {
+  const pins = document.getElementById('mapPins');
+  const list = document.getElementById('mapList');
+  // Distribute pins pseudo-randomly in the map area
+  const positions = [
+    [45,40],[30,55],[60,35],[20,70],[70,50],[50,20],[80,65],[15,30],[55,72],[35,18]
+  ];
+  pins.innerHTML = data.map((p,i) => {
+    const [top,left] = positions[i]||[50,50];
+    return `<div class="map-pin" style="top:${top}%;left:${left}%" title="${p.name}" onclick="showToast('📍 ${escStr(p.name)} · ${p.dist} mi away · ⭐${p.rating}')">
+      <div class="pin-dot ${i===0?'pin-top':'pin-other'}"><span>${i+1}</span></div>
+    </div>`;
+  }).join('');
+  list.innerHTML = data.map((p,i) => `
+    <div class="map-list-card">
+      <div class="mlc-rank">#${i+1}</div>
+      <div style="font-size:1.2rem">${p.emoji}</div>
+      <div class="mlc-name">${p.name}</div>
+      <div class="mlc-rating">★ ${p.rating} · ${p.dist}mi</div>
+    </div>`).join('');
+}
+
+// ─── FAVORITES ─────────────────────────────────────────────────────────────
+function toggleFav(name) {
+  if(state.favorites.includes(name)) {
+    state.favorites = state.favorites.filter(n=>n!==name);
+    showToast('Removed from favorites');
+  } else {
+    state.favorites.push(name);
+    showToast('❤️ Added to favorites!');
+  }
+  localStorage.setItem('top10_favs', JSON.stringify(state.favorites));
+  updateFavBadge();
+  applyFilters();
+  if(state.tab==='favorites') renderFavorites();
+}
+
+function updateFavBadge() {
+  document.getElementById('favBadge').textContent = state.favorites.length;
+}
+
+function openSaveToList(name) {
+  state.pendingSavePlace = name;
+  const opts = document.getElementById('modalListOpts');
+  opts.innerHTML = state.lists.map((l,i) => `
+    <div class="modal-list-opt" onclick="saveToList(${i})">
+      <span style="font-size:1.4rem">${l.emoji}</span>
+      <div>
+        <div style="font-size:.9rem;font-weight:600">${l.name}</div>
+        <div style="font-size:.72rem;color:var(--text-dim)">${l.places.length} places</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('listModal').classList.add('open');
+}
+
+function saveToList(idx) {
+  if(!state.lists[idx].places.includes(state.pendingSavePlace)) {
+    state.lists[idx].places.push(state.pendingSavePlace);
+    localStorage.setItem('top10_lists', JSON.stringify(state.lists));
+    showToast(`✅ Saved to "${state.lists[idx].name}"`);
+  } else {
+    showToast('Already in this list!');
+  }
+  closeModal();
+  if(state.tab==='favorites') renderFavorites();
+}
+
+function addNewList() {
+  const name = prompt('List name?');
+  if(!name) return;
+  const emojis = ['📌','🌟','🎯','🍀','🔥','🎪','💎'];
+  state.lists.push({name, emoji:emojis[state.lists.length%emojis.length], places:[]});
+  localStorage.setItem('top10_lists', JSON.stringify(state.lists));
+  closeModal();
+  openSaveToList(state.pendingSavePlace);
+}
+
+function closeModal() { document.getElementById('listModal').classList.remove('open'); }
+
+function renderFavorites() {
+  // Lists
+  const lg = document.getElementById('favListsGrid');
+  lg.innerHTML = state.lists.map((l,i) => `
+    <div class="fav-list-card">
+      <div class="flc-icon">${l.emoji}</div>
+      <div class="flc-name">${l.name}</div>
+      <div class="flc-count">${l.places.length} saved places</div>
+    </div>`).join('') +
+    `<button class="add-list-btn" onclick="promptNewList()">
+      <span style="font-size:1.5rem">+</span><span style="font-size:.85rem">New List</span>
+    </button>`;
+  // Saved places
+  const sg = document.getElementById('savedPlacesGrid');
+  if(!state.favorites.length) {
+    sg.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🤍</div><p>No saved places yet.<br>Tap the heart on any listing to save it here.</p></div>';
+    return;
+  }
+  const allPlaces = Object.values(PLACE_DATA).flat();
+  sg.innerHTML = state.favorites.map(name => {
+    const p = allPlaces.find(x=>x.name===name)||{emoji:'📍',name,tags:['—'],dist:'?'};
+    const listName = state.lists.find(l=>l.places.includes(name))?.name;
+    return `<div class="saved-card">
+      <div class="saved-emoji">${p.emoji}</div>
+      <div class="saved-info">
+        <div class="saved-name">${p.name}</div>
+        <div class="saved-cat">📍 ${p.dist} mi · ⭐ ${p.rating||'—'}</div>
+        ${listName?`<span class="saved-list-tag">${listName}</span>`:''}
+      </div>
+      <div class="action-btn saved" onclick="toggleFav('${escStr(name)}')" title="Remove">❤️</div>
+    </div>`;
+  }).join('');
+}
+
+function promptNewList() {
+  const name = prompt('New list name?');
+  if(!name) return;
+  const emojis = ['📌','🌟','🎯','🍀','🔥','🎪','💎'];
+  state.lists.push({name, emoji:emojis[state.lists.length%emojis.length], places:[]});
+  localStorage.setItem('top10_lists', JSON.stringify(state.lists));
+  renderFavorites();
+}
+
+// ─── TABS & VIEWS ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  state.tab = tab;
+  ['discover','favorites','feedback'].forEach(t => {
+    document.getElementById(t==='discover'?'listView':t+'View')?.classList.remove('active');
+  });
+  document.getElementById('mapView').classList.remove('active');
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    el.classList.toggle('active', ['discover','favorites','feedback'][i]===tab);
+  });
+  document.getElementById('contentHeader').style.display = tab==='discover'?'flex':'none';
+
+  if(tab==='discover') {
+    if(state.view==='map') { document.getElementById('mapView').classList.add('active'); }
+    else { document.getElementById('listView').style.display='flex'; document.getElementById('listView').classList.remove('active'); }
+    applyFilters();
+  } else if(tab==='favorites') {
+    document.getElementById('favoritesView').classList.add('active');
+    renderFavorites();
+  } else if(tab==='feedback') {
+    document.getElementById('feedbackView').classList.add('active');
+  }
+}
+
+function setView(v, btn) {
+  state.view = v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(v==='map') {
+    document.getElementById('listView').style.display='none';
+    document.getElementById('mapView').classList.add('active');
+  } else {
+    document.getElementById('listView').style.display='flex';
+    document.getElementById('mapView').classList.remove('active');
+  }
+}
+
+// ─── FEEDBACK ──────────────────────────────────────────────────────────────
+function setAppRating(r) {
+  state.appRating = r;
+  document.querySelectorAll('.app-star').forEach((s,i)=>s.classList.toggle('lit',i<r));
+}
+function submitFeedback() {
+  if(!state.appRating) { showToast('Please select a star rating first!'); return; }
+  document.getElementById('fbForm').style.display='none';
+  document.getElementById('fbSuccess').classList.add('show');
+}
+
+// ─── MISC ─────────────────────────────────────────────────────────────────
+function onCardClick(name) { showToast(`📖 Viewing details for ${name}`); }
+function sharePlace(name) { showToast(`🔗 Link copied: "Top 10 pick: ${name}"`); }
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+document.getElementById('listModal').addEventListener('click', e => { if(e.target===document.getElementById('listModal')) closeModal(); });
+
+init();
+</script>
+</body>
+</html>
